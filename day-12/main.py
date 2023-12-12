@@ -1,41 +1,45 @@
-import re
 from sys import argv
 
-R1 = re.compile(r"(?<![\?#])#+(?![\?#])")
-R2 = re.compile(r"#+")
 
+# i -> input cursor
+# j -> nums cursor
+# k -> used to track the length of the # blocks
+def count_alternatives(input, nums, i=0, j=0, k=0, reset=True, results={}):
+    if reset:
+        results.clear()
+    key = (i, j, k)
+    if key in results:
+        return results[key]
+    res = 0
 
-def final_check_input(input, nums):
-    matches = R2.findall(input)
-    lens = [len(x) for x in matches]
-    return lens == nums
-
-
-def check_input(input, nums):
-    matches = R1.findall(input)
-    lens = [len(x) for x in matches]
-    nc = nums.copy()
-    for x in lens:
-        if x in nc:
-            nc.remove(x)
+    # reached the end of the input
+    if i == len(input):
+        # checked all the blocks and cursor is not on a block
+        if j == len(nums) and k == 0:
+            return 1
+        # cursor is on a block so check last block
+        elif j == (len(nums) - 1) and nums[j] == k:
+            return 1
+        # not enough blocks found
         else:
-            return False
-    return True
-
-
-def decode_input(input, nums, depth=1, max_depth=None, res=None):
-    if max_depth is None:
-        max_depth = len(re.findall(r"\?", input))
-    if res is None:
-        res = []
-    inputs = [input.replace("?", "#", 1), input.replace("?", ".", 1)]
-    for i in inputs:
-        if check_input(i, nums):
-            if depth < max_depth:
-                decode_input(i, nums, depth=depth + 1, max_depth=max_depth, res=res)
-            elif final_check_input(i, nums):
-                res.append(i)
+            return 0
+    for c in [".", "#"]:
+        if input[i] == c or input[i] == "?":
+            # outside a block and moving to the next input element
+            if c == "." and k == 0:
+                res += count_alternatives(input, nums, i + 1, j, 0, False)
+            # check the block before exiting, updating j to point to the new block with initial size k=0
+            elif c == "." and k > 0 and j < len(nums) and nums[j] == k:
+                res += count_alternatives(input, nums, i + 1, j + 1, 0, False)
+            # increase the current block size by 1, so that it can be checked later
+            elif c == "#":
+                res += count_alternatives(input, nums, i + 1, j, k + 1, False)
+    results[key] = res
     return res
+
+
+def run(lines):
+    print(sum([count_alternatives(*line, reset=True) for line in lines]))
 
 
 filename = "./input"
@@ -46,18 +50,8 @@ with open(filename) as f:
     lines = [line.strip().split(" ") for line in f.readlines()]
     lines = [[y[0], [int(x) for x in y[1].split(",")]] for y in lines]
 
-# print(decode_input(*lines[47]))
-print(sum([len(decode_input(*line)) for line in lines]))
-
-
+run(lines)
 for line in lines:
     line[0] += 4 * ("?" + line[0])
     line[1] *= 5
-
-# for line in lines:
-#     print(len(decode_input(*line)))
-
-# too slow for part 2
-# print(sum([len(decode_input(*line)) for line in lines]))
-#
-# print(lines[0])
+run(lines)
