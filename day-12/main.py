@@ -1,17 +1,18 @@
 import re
 from sys import argv
 
-R = re.compile(r"(?<![\?#])#+(?![\?#])")
+R1 = re.compile(r"(?<![\?#])#+(?![\?#])")
+R2 = re.compile(r"#+")
 
 
 def final_check_input(input, nums):
-    matches = re.findall(r"#+", input)
+    matches = R2.findall(input)
     lens = [len(x) for x in matches]
     return lens == nums
 
 
 def check_input(input, nums):
-    matches = R.findall(input)
+    matches = R1.findall(input)
     lens = [len(x) for x in matches]
     nc = nums.copy()
     for x in lens:
