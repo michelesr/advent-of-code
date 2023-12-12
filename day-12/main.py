@@ -1,6 +1,8 @@
 import re
+from sys import argv
 
 R = re.compile(r"(?<![\?#])#+(?![\?#])")
+
 
 def final_check_input(input, nums):
     matches = re.findall(r"#+", input)
@@ -35,7 +37,11 @@ def decode_input(input, nums, depth=1, max_depth=None, res=None):
     return res
 
 
-with open("./input") as f:
+filename = "./input"
+if len(argv) >= 2:
+    filename = argv[1]
+
+with open(filename) as f:
     lines = [line.strip().split(" ") for line in f.readlines()]
     lines = [[y[0], [int(x) for x in y[1].split(",")]] for y in lines]
 
