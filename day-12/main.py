@@ -1,5 +1,6 @@
 import re
 
+R = re.compile(r"(?<![\?#])#+(?![\?#])")
 
 def final_check_input(input, nums):
     matches = re.findall(r"#+", input)
@@ -8,7 +9,7 @@ def final_check_input(input, nums):
 
 
 def check_input(input, nums):
-    matches = re.findall(r"(?<![\?#])#+(?![\?#])", input)
+    matches = R.findall(input)
     lens = [len(x) for x in matches]
     nc = nums.copy()
     for x in lens:
