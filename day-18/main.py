@@ -1,7 +1,31 @@
-from shapely import Polygon
 from sys import argv
 
-def find_points(lines: list[tuple[str, int, str]], part_two: bool = False) -> list[tuple[int, int]]:
+
+def perimeter(points: list[tuple[int, int]]) -> int:
+    res = 0
+    for i in range(len(points) - 1):
+        a, b = points[i], points[i + 1]
+        ax, ay = a
+        bx, by = b
+        res += max(abs(ax - bx), abs(ay - by))
+    return res
+
+
+def area(points: list[tuple[int, int]]) -> int:
+    # shoelace formula
+    r1, r2 = 0, 0
+    for i in range(len(points) - 1):
+        a, b = points[i], points[i + 1]
+        ax, ay = a
+        bx, by = b
+        r1 += ax * by
+        r2 += bx * ay
+    return abs(r1 - r2) // 2
+
+
+def find_points(
+    lines: list[tuple[str, int, str]], part_two: bool = False
+) -> list[tuple[int, int]]:
     points: list[tuple[int, int]] = [(0, 0)]
     x, y = 0, 0
     for line in lines:
@@ -24,16 +48,15 @@ def find_points(lines: list[tuple[str, int, str]], part_two: bool = False) -> li
 
 
 def score(points: list[tuple[int, int]]) -> int:
-    # Pick's theorem + Shoelace formula
+    # Pick's theorem
     #
-    # A is the area of the figure
-    # b is the perimeter
-    # i is the number of integer points in the perimeter
+    # A is the area of the polygon
+    # b is the perimeter of the polygon
+    # i is the number of integer points internal to the polygon
     #
     # i + b = A + b/2 + 1
-    p = Polygon(points)
-    A = p.area
-    b = p.length
+    A = area(points)
+    b = perimeter(points)
     res = A + b / 2 + 1
     return int(res)
 
