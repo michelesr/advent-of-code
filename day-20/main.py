@@ -1,5 +1,7 @@
 from sys import argv
 from queue import Queue
+from copy import deepcopy
+from math import lcm
 
 from enum import Enum
 
@@ -104,13 +106,16 @@ for x in [m for m in modules.values() if m.module_type == ModuleType.CONJUNCTION
     x.init_inputs(modules)
 
 
-def press_button(modules: dict[str, Module]) -> tuple[int, int]:
+def press_button(modules: dict[str, Module], track=None) -> tuple[int, int, bool]:
     low_pulses_n = 0
     high_pulses_n = 0
+    found = False
     pulses = Queue()
     pulses.put((Pulse.LOW, "button", "broadcaster"))
     while not pulses.empty():
         pulse, src, dest = pulses.get()
+        if track and pulse == Pulse.LOW and src == track:
+            found = True
 
         if pulse == Pulse.LOW:
             low_pulses_n += 1
@@ -121,16 +126,70 @@ def press_button(modules: dict[str, Module]) -> tuple[int, int]:
 
         if dest in modules:
             modules[dest].propagate(src, pulse, pulses)
-    return (low_pulses_n, high_pulses_n)
+    return (low_pulses_n, high_pulses_n, found)
 
 
+def find_loop_freq(modules: dict[str, Module], src: str) -> int:
+    modules = deepcopy(modules)
+    times_found = []
+    i = 0
+    while True:
+        i += 1
+        _, _, found = press_button(modules, src)
+        if found:
+            times_found.append(i)
+        if len(times_found) > 2:
+            return times_found[-1] - times_found[-2]
+
+
+def verify_path(path: list[str], graph: dict[str, list[str]]):
+    current = path[0]
+    for node in path[1:]:
+        if node not in graph[current]:
+            return False
+        current = node
+    return True
+
+
+old_modules = deepcopy(modules)
 pulses = Queue()
 
-# press the button
 res = [0, 0]
 for i in range(1000):
-    a, b = press_button(modules)
+    a, b, _ = press_button(modules)
     res[0] += a
     res[1] += b
-
 print(res[0] * res[1])
+
+modules = old_modules
+
+# visualization using graphviz
+#
+# import graphviz
+# g = graphviz.Graph('G', filename='out.gv')
+# for k, v in modules.items():
+#     for out in v.outputs:
+#         g.edge(k, out)
+# g.view()
+
+graph = {k: v.outputs for k, v in modules.items()}
+
+
+# these paths leads to xn and so rx
+# rx needs a LOW signal from xn
+# xn needs (xf, fz, mp, hn) to be all HIGH to send LOW to rx
+# (xf, fz, mp, hn) are inverter modules so they need to receive LOW from (gp, fb, jl, jn) to send HIGH
+# (gp, fb, jl, jn), are Conjuction modules so they need to have at least one input LOW
+# (pk, vk, km, xt), are flip flops
+paths = [
+    ["pk", "gp", "xf"],
+    ["vk", "fb", "fz"],
+    ["km", "jl", "mp"],
+    ["xt", "jn", "hn"],
+]
+
+# verify them and abort it not
+assert all([verify_path(path, graph) for path in paths])
+
+sources = ("gp", "fb", "jl", "jn")
+print(lcm(*[find_loop_freq(modules, src) for src in sources]))
