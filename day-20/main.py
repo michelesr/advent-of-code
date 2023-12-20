@@ -164,25 +164,26 @@ print(res[0] * res[1])
 #
 # g.view()
 
-# these paths leads to xn and so rx
+# these paths leads to xn and so rx: you can see them in the graphviz visualization
+# rx needs a LOW signal from xn
+# xn needs (xf, fz, mp, hn) to be all HIGH to send LOW to rx
+# (xf, fz, mp, hn) are inverter modules so they need to receive LOW from (gp, fb, jl, jn) to send HIGH
+#
+# find_period() will be used to find the period (in number of cycles) when these modules receive LOW
 paths = [
-    ["pk", "gp", "xf"],
-    ["vk", "fb", "fz"],
-    ["km", "jl", "mp"],
-    ["xt", "jn", "hn"],
+    ["broadcaster", "pk", "gp", "xf", "xn", "rx"],
+    ["broadcaster", "vk", "fb", "fz", "xn", "rx"],
+    ["broadcaster", "km", "jl", "mp", "xn", "rx"],
+    ["broadcaster", "xt", "jn", "hn", "xn", "rx"],
 ]
 
 # verify them and abort it the paths are not correct
 graph = {k: v.outputs for k, v in modules.items()}
 assert all([verify_path(path, graph) for path in paths])
 
-# rx needs a LOW signal from xn
-# xn needs (xf, fz, mp, hn) to be all HIGH to send LOW to rx
-# (xf, fz, mp, hn) are inverter modules so they need to receive LOW from (gp, fb, jl, jn) to send HIGH
-#
-# find_period() will be used to find the period (in number of cycles) when these component receive LOW
-
 modules = old_modules
+
+# these are the nodes 3 hops behind "rx"
 sources = ("gp", "fb", "jl", "jn")
 
 # the lcm of all periods is the number of cycles when they all receive LOW
