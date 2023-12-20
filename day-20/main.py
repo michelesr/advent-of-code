@@ -4,6 +4,7 @@ from copy import deepcopy
 from math import lcm
 
 from enum import Enum
+from typing import Optional
 
 
 class Pulse(Enum):
@@ -20,7 +21,6 @@ class ModuleType(Enum):
     BROADCASTER = "broadcaster"
     FLIP_FLOP = "%"
     CONJUNCTION = "&"
-    UNTYPED = None
 
 
 class Module:
@@ -34,7 +34,8 @@ class Module:
         self.outputs = outputs
 
     def propagate(self, input: str, pulse: Pulse, queue: Queue):
-        pass
+        for out in self.outputs:
+            queue.put((pulse, self.name, out))
 
 
 class FlifFlopModule(Module):
@@ -51,8 +52,7 @@ class FlifFlopModule(Module):
         else:
             pulse = Pulse.LOW
 
-        for out in self.outputs:
-            queue.put((pulse, self.name, out))
+        super().propagate(input, pulse, queue)
 
 
 class ConjuctionModule(Module):
@@ -69,44 +69,18 @@ class ConjuctionModule(Module):
 
     def propagate(self, input: str, pulse: Pulse, queue: Queue):
         self.inputs[input] = pulse
+
         if all([i.value for i in self.inputs.values()]):
             pulse = Pulse.LOW
         else:
             pulse = Pulse.HIGH
 
-        for out in self.outputs:
-            queue.put((pulse, self.name, out))
+        super().propagate(input, pulse, queue)
 
 
-class Broadcaster(Module):
-    def propagate(self, input: str, pulse: Pulse, queue: Queue):
-        for out in self.outputs:
-            queue.put((pulse, self.name, out))
-
-
-with open(argv[1]) as f:
-    lines = [line.strip() for line in f.readlines()]
-
-modules = {}
-
-for line in lines:
-    name, out = line.split(" -> ")
-    out = out.split(", ")
-    if name == ModuleType.BROADCASTER.value:
-        modules[name] = Broadcaster(ModuleType.BROADCASTER, name, out)
-
-    elif ModuleType.FLIP_FLOP.value in name:
-        name = name[1:]
-        modules[name] = FlifFlopModule(ModuleType.FLIP_FLOP, name, out)
-    elif ModuleType.CONJUNCTION.value in name:
-        name = name[1:]
-        modules[name] = ConjuctionModule(ModuleType.CONJUNCTION, name, out)
-
-for x in [m for m in modules.values() if m.module_type == ModuleType.CONJUNCTION]:
-    x.init_inputs(modules)
-
-
-def press_button(modules: dict[str, Module], track=None) -> tuple[int, int, bool]:
+def press_button(
+    modules: dict[str, Module], track: Optional[str] = None
+) -> tuple[int, int, bool]:
     low_pulses_n = 0
     high_pulses_n = 0
     found = False
@@ -114,6 +88,7 @@ def press_button(modules: dict[str, Module], track=None) -> tuple[int, int, bool
     pulses.put((Pulse.LOW, "button", "broadcaster"))
     while not pulses.empty():
         pulse, src, dest = pulses.get()
+
         if track and pulse == Pulse.LOW and src == track:
             found = True
 
@@ -129,20 +104,17 @@ def press_button(modules: dict[str, Module], track=None) -> tuple[int, int, bool
     return (low_pulses_n, high_pulses_n, found)
 
 
-def find_loop_freq(modules: dict[str, Module], src: str) -> int:
+def find_period(modules: dict[str, Module], src: str) -> int:
     modules = deepcopy(modules)
-    times_found = []
     i = 0
     while True:
         i += 1
         _, _, found = press_button(modules, src)
         if found:
-            times_found.append(i)
-        if len(times_found) > 2:
-            return times_found[-1] - times_found[-2]
+            return i
 
 
-def verify_path(path: list[str], graph: dict[str, list[str]]):
+def verify_path(path: list[str], graph: dict[str, list[str]]) -> bool:
     current = path[0]
     for node in path[1:]:
         if node not in graph[current]:
@@ -150,6 +122,27 @@ def verify_path(path: list[str], graph: dict[str, list[str]]):
         current = node
     return True
 
+
+with open(argv[1]) as f:
+    lines = [line.strip() for line in f.readlines()]
+
+modules = {}
+
+for line in lines:
+    name, out = line.split(" -> ")
+    out = out.split(", ")
+    if name == ModuleType.BROADCASTER.value:
+        modules[name] = Module(ModuleType.BROADCASTER, name, out)
+
+    elif ModuleType.FLIP_FLOP.value in name:
+        name = name[1:]
+        modules[name] = FlifFlopModule(ModuleType.FLIP_FLOP, name, out)
+    elif ModuleType.CONJUNCTION.value in name:
+        name = name[1:]
+        modules[name] = ConjuctionModule(ModuleType.CONJUNCTION, name, out)
+
+for x in [m for m in modules.values() if m.module_type == ModuleType.CONJUNCTION]:
+    x.init_inputs(modules)
 
 old_modules = deepcopy(modules)
 pulses = Queue()
@@ -161,26 +154,17 @@ for i in range(1000):
     res[1] += b
 print(res[0] * res[1])
 
-modules = old_modules
-
-# visualization using graphviz
+# visualization using graphviz: helpful to understand the problem
 #
 # import graphviz
 # g = graphviz.Graph('G', filename='out.gv')
 # for k, v in modules.items():
 #     for out in v.outputs:
 #         g.edge(k, out)
+#
 # g.view()
 
-graph = {k: v.outputs for k, v in modules.items()}
-
-
 # these paths leads to xn and so rx
-# rx needs a LOW signal from xn
-# xn needs (xf, fz, mp, hn) to be all HIGH to send LOW to rx
-# (xf, fz, mp, hn) are inverter modules so they need to receive LOW from (gp, fb, jl, jn) to send HIGH
-# (gp, fb, jl, jn), are Conjuction modules so they need to have at least one input LOW
-# (pk, vk, km, xt), are flip flops
 paths = [
     ["pk", "gp", "xf"],
     ["vk", "fb", "fz"],
@@ -188,8 +172,19 @@ paths = [
     ["xt", "jn", "hn"],
 ]
 
-# verify them and abort it not
+# verify them and abort it the paths are not correct
+graph = {k: v.outputs for k, v in modules.items()}
 assert all([verify_path(path, graph) for path in paths])
 
+# rx needs a LOW signal from xn
+# xn needs (xf, fz, mp, hn) to be all HIGH to send LOW to rx
+# (xf, fz, mp, hn) are inverter modules so they need to receive LOW from (gp, fb, jl, jn) to send HIGH
+#
+# find_period() will be used to find the period (in number of cycles) when these component receive LOW
+
+modules = old_modules
 sources = ("gp", "fb", "jl", "jn")
-print(lcm(*[find_loop_freq(modules, src) for src in sources]))
+
+# the lcm of all periods is the number of cycles when they all receive LOW
+# and so they send HIGH to the xn component that sends LOW to rx
+print(lcm(*[find_period(modules, src) for src in sources]))
