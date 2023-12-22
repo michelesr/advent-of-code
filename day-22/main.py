@@ -1,4 +1,5 @@
 from sys import argv
+from collections import deque
 
 
 def overlaps(a, b):
@@ -55,3 +56,24 @@ for i in range(1, len(bricks)):
 
 res = [can_disintegrate(i) for i in range(len(bricks))]
 print(len([x for x in res if x]))
+
+res = 0
+for i in range(len(bricks)):
+    q = deque(j for j in supports_map[i] if len(is_supported_map[j]) == 1)
+    falling = set(q)
+    falling.add(i)
+
+    while q:
+        j = q.popleft()
+        # for each brick that j supports that is not falling already
+        for k in supports_map[j] - falling:
+            # if everything that supports k is falling
+            if is_supported_map[k] <= falling:
+                # let k fall too
+                q.append(k)
+                falling.add(k)
+
+    # added i at the beginning but that doesn't have to be counted
+    res += len(falling) - 1
+
+print(res)
