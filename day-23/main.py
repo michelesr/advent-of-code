@@ -37,8 +37,6 @@ def find_connections(
         while not found:
             in_grid = 0 <= ni < len(grid) and 0 <= nj < len(grid[0])
             while in_grid and grid[ni][nj] != "#":
-                # if (ni, nj) == (11, 21):
-                #     __import__('pdb').set_trace()
                 if (ni, nj) in nodes:
                     found = True
                     break
