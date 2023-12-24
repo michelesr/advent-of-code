@@ -1,5 +1,6 @@
 from sys import argv
 from itertools import combinations
+import sympy
 
 
 class Hailstone:
@@ -81,3 +82,33 @@ for a, b in combinations(hailstones, 2):
         if in_range and a.is_future(x) and b.is_future(x):
             res += 1
 print(res)
+
+# the idea for part two is to create a linear algebra system that can be resolved by a library
+# so 
+# let xr, yr, zr, vxr, vyr, vzr be the position and velocity of the rock
+# let xh, yh, zh, vxh, vyh, vzh be the position and velocity of the hs
+# for each coordinate we want:
+# xr + t * (vxr) = xh + t * (vxh)
+# (t * vxr) - (t * vxh) = xh - xr
+# t * (vxr - vxh) = xh - xr
+# t = (xh - xr) / (vxr - vxh)
+# and this must be true for y and z so:
+# t = (yh - yr) / (vyr - vyh)
+# t = (zh - zr) / (vzr - vzh)
+# and thus we want 
+# (xh - xr) / (vxr - vxh) = (yh - yr) / (vyr - vyh)
+# (yh - yr) / (vyr - vyh) = (zh - zr) / (vzr - vzh)
+# and so
+# (xh - xr) * (vyr - vyh) - (yh - yr) * (vxr - vxh) = 0
+# (yh - yr) * (vzr - vzh) - (zh - zr) * (vyr - vyh) = 0
+
+xr, yr, zr, vxr, vyr, vzr = sympy.symbols("xr, yr, zr, vxr, vyr, vzr")
+equations = []
+for hs in hailstones:
+    xh, yh, zh, vxh, vyh, vzh = hs.sx, hs.sy, hs.sz, hs.vx, hs.vy, hs.vz
+    equations.append((xh - xr) * (vyr - vyh) - (yh - yr) * (vxr - vxh))
+    equations.append((yh - yr) * (vzr - vzh) - (zh - zr) * (vyr - vyh))
+
+solutions = sympy.solve(equations)[0]
+x, y, z = solutions[xr], solutions[yr], solutions[zr]
+print(x + y + z)
