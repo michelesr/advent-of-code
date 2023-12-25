@@ -108,6 +108,8 @@ for hs in hailstones:
     xh, yh, zh, vxh, vyh, vzh = hs.sx, hs.sy, hs.sz, hs.vx, hs.vy, hs.vz
     equations.append((xh - xr) * (vyr - vyh) - (yh - yr) * (vxr - vxh))
     equations.append((yh - yr) * (vzr - vzh) - (zh - zr) * (vyr - vyh))
+    if len(equations) == 8:
+        break
 
 solutions = sympy.solve(equations)[0]
 x, y, z = solutions[xr], solutions[yr], solutions[zr]
