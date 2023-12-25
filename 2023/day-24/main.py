@@ -101,15 +101,19 @@ print(res)
 # and so
 # (xh - xr) * (vyr - vyh) - (yh - yr) * (vxr - vxh) = 0
 # (yh - yr) * (vzr - vzh) - (zh - zr) * (vyr - vyh) = 0
+#
+# the system is not linear, and so it has more than 1 solution
+# but it can be limited to 1 solution by adding more equations
+# and there are plenty of stones to check
 
 xr, yr, zr, vxr, vyr, vzr = sympy.symbols("xr, yr, zr, vxr, vyr, vzr")
 equations = []
-for hs in hailstones:
+
+# a system of 8 equations is sufficient to get an unique solution
+for hs in hailstones[:4]:
     xh, yh, zh, vxh, vyh, vzh = hs.sx, hs.sy, hs.sz, hs.vx, hs.vy, hs.vz
     equations.append((xh - xr) * (vyr - vyh) - (yh - yr) * (vxr - vxh))
     equations.append((yh - yr) * (vzr - vzh) - (zh - zr) * (vyr - vyh))
-    if len(equations) == 8:
-        break
 
 solutions = sympy.solve(equations)[0]
 x, y, z = solutions[xr], solutions[yr], solutions[zr]
