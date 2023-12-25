@@ -83,7 +83,7 @@ for a, b in combinations(hailstones, 2):
             res += 1
 print(res)
 
-# the idea for part two is to create a linear algebra system that can be resolved by a library
+# the idea for part two is to create an algebric system that can be resolved by a library
 # so 
 # let xr, yr, zr, vxr, vyr, vzr be the position and velocity of the rock
 # let xh, yh, zh, vxh, vyh, vzh be the position and velocity of the hs
