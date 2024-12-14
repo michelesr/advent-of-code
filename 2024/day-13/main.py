@@ -1,36 +1,32 @@
 from os import getenv
 
-
-def calculate_cost(machine):
-    """
-    Calculate the cost of winning a prize for a given machine.
-
-    Args:
-    machine (dict): A dictionary containing the machine's configuration.
-
-    Returns:
-    int: The minimum cost to win the prize, or -1 if it's not possible.
-    """
+def solve(machine):
     a_x, a_y = machine["a_x"], machine["a_y"]
     b_x, b_y = machine["b_x"], machine["b_y"]
     prize_x, prize_y = machine["prize_x"], machine["prize_y"]
 
-    min_cost = float("inf")
+    # create the matrix for the linear system
+    a1, b1, c1 = a_x, b_x, prize_x
+    a2, b2, c2 = a_y, b_y, prize_y
 
-    # Iterate over all possible combinations of A and B presses
-    for a_presses in range(101):
-        for b_presses in range(101):
-            # Calculate the total movement along the X and Y axes
-            total_x = a_presses * a_x + b_presses * b_x
-            total_y = a_presses * a_y + b_presses * b_y
+    # solve with cramer
+    return (
+        (c1 * b2 - c2 * b1) / (a1 * b2 - a2 * b1),
+        (c2 * a1 - c1 * a2) / (a1 * b2 - a2 * b1)
+    )
 
-            # Check if the prize can be reached
-            if total_x == prize_x and total_y == prize_y:
-                # Calculate the cost of winning the prize
-                cost = a_presses * 3 + b_presses
-                min_cost = min(min_cost, cost)
+def is_valid_solution(a, b):
+    return int(a) == a and int(b) == b
 
-    return min_cost if min_cost != float("inf") else -1
+def total_cost(machines) -> int:
+    res = 0
+    for machine in machines:
+        a, b = solve(machine)
+        if is_valid_solution(a, b):
+            res += 3 * a + b
+    if int(res) != res:
+        raise ValueError("Non integer solution")
+    return int(res)
 
 
 with open(getenv("AOC_INPUT", "example_input.txt"), "r") as f:
@@ -59,10 +55,10 @@ for line in lines:
         machines.append(machine)
         machine = {}
 
-res = 0
-for machine in machines:
-    cost = calculate_cost(machine)
-    if cost != -1:
-        res += cost
+print(total_cost(machines))
 
-print(res)
+for machine in machines:
+    machine["prize_x"] += 10000000000000
+    machine["prize_y"] += 10000000000000
+
+print(total_cost(machines))
