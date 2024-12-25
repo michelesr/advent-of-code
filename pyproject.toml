@@ -7,6 +7,9 @@ license = "MIT"
 readme = "README.md"
 package-mode = false
 
+[tool.poetry.group.dev.dependencies]
+graphviz = "^0.20.3"
+
 [tool.pyright]
 venv = ".venv"
 venvPath = "."
