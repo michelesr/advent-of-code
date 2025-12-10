@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from itertools import permutations
+from itertools import combinations
 from os import getenv
 
 from numpy import array, ones
@@ -15,7 +15,7 @@ class Machine:
     def configure(self) -> int:
         # lazy and inefficient brute force
         for k in range(1, len(self.buttons)):
-            for buttons in permutations(self.buttons, k):
+            for buttons in combinations(self.buttons, k):
                 on = set()
                 for button in buttons:
                     on = button ^ on
