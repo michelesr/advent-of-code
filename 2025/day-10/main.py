@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from itertools import permutations
 from os import getenv
 
-from numpy import array, inf, ones, ones_like
-from scipy.optimize import Bounds, LinearConstraint, milp
+from numpy import array, ones
+from scipy.optimize import linprog
 
 
 @dataclass
@@ -37,9 +37,6 @@ class Machine:
         # these are the desired number of button pressed for that joltage value, the rhs of the linear system
         joltage = array(self.joltage)
 
-        # since milp deals with inequalities, set lb == ub so that the inequality becomes an equation
-        constraint = LinearConstraint(equations, lb=joltage, ub=joltage)
-
         # cost of each variable, since we want to minimize the sum, we use 1 for each variable
         # this is like -> c = array([1] * len(equations[0]))
         c = ones(len(equations[0]))
@@ -48,9 +45,12 @@ class Machine:
         integrality = c
 
         # we wants our variables to be >= 0, so we give (0, +inf) as boundary
-        bounds = Bounds(lb=0, ub=inf)
+        bounds = (0, None)
 
-        res = milp(c=c, constraints=constraint, integrality=integrality, bounds=bounds)
+        res = linprog(
+            c=c, A_eq=equations, b_eq=joltage, integrality=integrality, bounds=bounds
+        )
+
         return int(sum(res.x))
 
 
