@@ -17,7 +17,7 @@ class Plane:
 
 
 def count_blocks(shape) -> int:
-    return sum(1 for line in shape for c in line if c == "#")
+    return sum(line.count("#") for line in shape)
 
 
 with open(getenv("AOC_INPUT", "example_input.txt"), "r") as f:
